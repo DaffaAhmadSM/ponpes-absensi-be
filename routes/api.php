@@ -4,15 +4,18 @@ use App\Http\Controllers\api\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get("/user", function (Request $request) {
+Route::get('/user', function (Request $request) {
     return $request->user();
-})->middleware("auth:sanctum");
+})->middleware('auth:sanctum');
 
-Route::get("unathorized", function () {
-    return response()->json(["error" => "Unauthorized"], 401);
-})->name("login");
+Route::get('unathorized', function () {
+    return response()->json(['error' => 'Unauthorized'], 401);
+})->name('login');
 
-Route::post("login", [AuthController::class, "login"]);
-Route::post("logout", [AuthController::class, "logout"])->middleware(
-    "auth:sanctum",
+Route::post('login', [AuthController::class, 'login']);
+Route::post('logout', [AuthController::class, 'logout'])->middleware(
+    'auth:sanctum',
 );
+
+include base_path('routes/api/api.instance_location.php');
+include base_path('routes/api/api.attendance.php');
