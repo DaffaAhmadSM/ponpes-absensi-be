@@ -1,0 +1,243 @@
+<?php
+
+namespace App\Http\Controllers\api;
+
+use App\Http\Controllers\Controller;
+use App\Models\AttendanceTimeSetting;
+use App\Models\InstanceLocation;
+use App\Models\MemberAttendance;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+
+class AttendanceController extends Controller
+{
+    private int $max_distance_km = 2; // 1 km
+
+    public function index(Request $request)
+    {
+        $validator = Validator($request->all(), [
+            'date' => 'date',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()], 422);
+        }
+
+        $attendace = $request->user()->memberAttendances();
+
+        if ($request->has('date')) {
+            $attendace = $attendace->where('attendance_date', $request->date);
+        }
+
+        $attendace = $attendace->orderBy('attendance_date', 'desc')
+            ->get();
+
+        return response()->json($attendace);
+
+    }
+
+    public function checkIn(Request $request)
+    {
+        $validator = Validator($request->all(), [
+            'date' => 'required|date',
+            'longitude' => 'required|numeric',
+            'latitude' => 'required|numeric',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()], 422);
+        }
+
+        $check_attendance = MemberAttendance::where('user_id', $request->user()->id)
+            ->where('attendance_date', Carbon::parse($request->date))
+            ->first();
+
+        if ($check_attendance) {
+            return response()->json(['message' => 'User has already checked in on this date'], 422);
+        }
+
+        $default_location = InstanceLocation::where('default', true)->first();
+        if (! $default_location) {
+            return response()->json(['message' => 'default location not found'], 500);
+        }
+        // harvesine formula to calculate distance
+        $distance = $this->haversineGreatCircleDistance(
+            $default_location->latitude,
+            $default_location->longitude,
+            $request->latitude,
+            $request->longitude
+        );
+
+        $checkin_calc = 0;
+        if ($distance > $this->max_distance_km * 1000) {
+            $checkin_calc = 3; // out of range
+        }
+
+        if ($checkin_calc != 3) {
+            $checkin_calc = $this->checkInCalculation(now());
+        }
+        $status = '';
+        switch ($checkin_calc) {
+            case 1:
+                // present
+                $status = 'present';
+                break;
+            case 2:
+                // late
+                $status = 'late';
+                break;
+            case 3:
+                // out of range
+                $status = 'out of range';
+                break;
+            default:
+                // error
+                return response()->json(['message' => $checkin_calc], 422);
+        }
+
+        MemberAttendance::create([
+            'user_id' => $request->user()->id,
+            'instance_location_id' => $default_location->id,
+            'attendance_date' => Carbon::parse($request->date),
+            'check_in_time' => now(),
+            'check_in_status' => $status,
+            'check_in_latitude' => $request->latitude,
+            'check_in_longitude' => $request->longitude,
+            'notes' => $request->notes ?? null,
+        ]);
+
+        return response()->json(['message' => 'Check-in successful']);
+    }
+
+    public function checkout(Request $request)
+    {
+        $validator = Validator($request->all(), [
+            'date' => 'required|date',
+            'longitude' => 'required|numeric',
+            'latitude' => 'required|numeric',
+        ]);
+
+        $attendance = MemberAttendance::where('user_id', $request->user()->id)
+            ->where('attendance_date', Carbon::parse($request->date))
+            ->first();
+        if (! $attendance) {
+            return response()->json(['message' => 'User has not checked in yet on this date'], 404);
+        }
+
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()], 422);
+        }
+
+        $default_location = InstanceLocation::where('default', true)->first();
+        if (! $default_location) {
+            return response()->json(['message' => 'default location not found'], 500);
+        }
+        // harvesine formula to calculate distance
+        $distance = $this->haversineGreatCircleDistance(
+            $default_location->latitude,
+            $default_location->longitude,
+            $request->latitude,
+            $request->longitude
+        );
+
+        $checkout_calc = 0;
+
+        if ($distance > $this->max_distance_km * 1000) {
+            $checkout_calc = 3; // out of range
+        }
+        if ($checkout_calc != 3) {
+            $checkout_calc = $this->checkOutCalculation(now());
+        }
+
+        $status = '';
+        switch ($checkout_calc) {
+            case 1:
+                // present
+                $status = 'present';
+                break;
+            case 2:
+                // to early
+                $status = 'to early';
+                break;
+            case 3:
+                // out of range
+                $status = 'out of range';
+                break;
+            default:
+                // error
+                return response()->json(['message' => $checkout_calc], 422);
+        }
+
+        if ($attendance->check_out_time != null) {
+            return response()->json(['message' => 'User has already checked out'], 422);
+        }
+
+        $attendance->check_out_time = now();
+        $attendance->check_out_status = $status;
+        $attendance->check_out_latitude = $request->latitude;
+        $attendance->check_out_longitude = $request->longitude;
+        $attendance->save();
+
+        return response()->json(['message' => 'Check-out successful']);
+    }
+
+    private function checkInCalculation(Carbon $checkinTime): string|int
+    {
+        // 1 present
+        // 2 late
+        // error string
+        $attendanceTimeSetting = AttendanceTimeSetting::where('name', 'default')->first();
+
+        if (! $attendanceTimeSetting) {
+            return 'Attendance time setting not found';
+        }
+
+        $checkInStart = Carbon::parse($attendanceTimeSetting->check_in_start);
+        $checkInEnd = Carbon::parse($attendanceTimeSetting->check_in_end)
+            ->addMinutes($attendanceTimeSetting->grace_period_minutes);
+
+        if ($checkinTime > $checkInEnd) {
+            return 2; // late
+        }
+
+        return 1;
+    }
+
+    private function checkOutCalculation(Carbon $checkoutTime): string|int
+    {
+        // 1 present
+        // 2 to early
+        // error string
+        $attendanceTimeSetting = AttendanceTimeSetting::where('name', 'default')->first();
+
+        if (! $attendanceTimeSetting) {
+            return 'Attendance time setting not found';
+        }
+
+        $checkOutStart = Carbon::parse($attendanceTimeSetting->check_out_start);
+        $checkOutEnd = Carbon::parse($attendanceTimeSetting->check_out_end);
+
+        if ($checkoutTime < $checkOutStart) {
+            return 2; // late
+        }
+
+        return 1;
+    }
+
+    private function haversineGreatCircleDistance(
+        $latitudeFrom, $longitudeFrom, $latitudeTo, $longitudeTo, $earthRadius = 6371000)
+    {
+        // convert from degrees to radians
+        $latFrom = deg2rad($latitudeFrom);
+        $lonFrom = deg2rad($longitudeFrom);
+        $latTo = deg2rad($latitudeTo);
+        $lonTo = deg2rad($longitudeTo);
+
+        $latDelta = $latTo - $latFrom;
+        $lonDelta = $lonTo - $lonFrom;
+
+        $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
+          cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
+
+        return $angle * $earthRadius;
+    }
+}

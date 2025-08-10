@@ -33,6 +33,8 @@ use Laravel\Sanctum\HasApiTokens;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User wherePassword($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereRememberToken($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|User whereUpdatedAt($value)
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\MemberAttendance> $memberAttendances
+ * @property-read int|null $member_attendances_count
  * @mixin \Eloquent
  */
 class User extends Authenticatable
@@ -72,5 +74,10 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function memberAttendances()
+    {
+        return $this->hasMany(MemberAttendance::class);
     }
 }

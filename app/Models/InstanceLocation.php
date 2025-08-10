@@ -22,6 +22,10 @@ use Illuminate\Database\Eloquent\Model;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|InstanceLocation whereLongitude($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|InstanceLocation whereName($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|InstanceLocation whereUpdatedAt($value)
+ * @property int $default
+ * @property string|null $address
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|InstanceLocation whereAddress($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|InstanceLocation whereDefault($value)
  * @mixin \Eloquent
  */
 class InstanceLocation extends Model
