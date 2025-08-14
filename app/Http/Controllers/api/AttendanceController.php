@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceTimeSetting;
 use App\Models\InstanceLocation;
 use App\Models\MemberAttendance;
+use App\Models\RoleAttendanceTime;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Validator;
 
 class AttendanceController extends Controller
 {
@@ -15,7 +18,7 @@ class AttendanceController extends Controller
 
     public function index(Request $request)
     {
-        $validator = Validator($request->all(), [
+        $validator = Validator::make($request->all(), [
             'date' => 'date',
         ]);
         if ($validator->fails()) {
@@ -37,7 +40,7 @@ class AttendanceController extends Controller
 
     public function checkIn(Request $request)
     {
-        $validator = Validator($request->all(), [
+        $validator = Validator::make($request->all(), [
             'date' => 'required|date',
             'longitude' => 'required|numeric',
             'latitude' => 'required|numeric',
@@ -73,7 +76,7 @@ class AttendanceController extends Controller
         }
 
         if ($checkin_calc != 3) {
-            $checkin_calc = $this->checkInCalculation(now());
+            $checkin_calc = $this->checkInCalculation(now(), $request->user());
         }
         $status = '';
         switch ($checkin_calc) {
@@ -110,7 +113,7 @@ class AttendanceController extends Controller
 
     public function checkout(Request $request)
     {
-        $validator = Validator($request->all(), [
+        $validator = Validator::make($request->all(), [
             'date' => 'required|date',
             'longitude' => 'required|numeric',
             'latitude' => 'required|numeric',
@@ -145,7 +148,7 @@ class AttendanceController extends Controller
             $checkout_calc = 3; // out of range
         }
         if ($checkout_calc != 3) {
-            $checkout_calc = $this->checkOutCalculation(now());
+            $checkout_calc = $this->checkOutCalculation(now(), $request->user());
         }
 
         $status = '';
@@ -180,20 +183,22 @@ class AttendanceController extends Controller
         return response()->json(['message' => 'Check-out successful']);
     }
 
-    private function checkInCalculation(Carbon $checkinTime): string|int
+    private function checkInCalculation(Carbon $checkinTime, User $user): string|int
     {
         // 1 present
         // 2 late
         // error string
-        $attendanceTimeSetting = AttendanceTimeSetting::where('name', 'default')->first();
+        $userRole = $user->role_id;
 
-        if (! $attendanceTimeSetting) {
-            return 'Attendance time setting not found';
+        $role_attendance_setting = RoleAttendanceTime::where('role_id', $userRole)->with('attendanceTimeSetting')
+            ->first();
+        if (! $role_attendance_setting) {
+            return 'Role attendance time setting not found please contact admin';
         }
 
-        $checkInStart = Carbon::parse($attendanceTimeSetting->check_in_start);
-        $checkInEnd = Carbon::parse($attendanceTimeSetting->check_in_end)
-            ->addMinutes($attendanceTimeSetting->grace_period_minutes);
+        $checkInStart = Carbon::parse($role_attendance_setting->attendanceTimeSetting->check_in_start);
+        $checkInEnd = Carbon::parse($role_attendance_setting->attendanceTimeSetting->check_in_end)
+            ->addMinutes($role_attendance_setting->attendanceTimeSetting->grace_period_minutes);
 
         if ($checkinTime > $checkInEnd) {
             return 2; // late
@@ -202,19 +207,21 @@ class AttendanceController extends Controller
         return 1;
     }
 
-    private function checkOutCalculation(Carbon $checkoutTime): string|int
+    private function checkOutCalculation(Carbon $checkoutTime, User $user): string|int
     {
         // 1 present
         // 2 to early
         // error string
-        $attendanceTimeSetting = AttendanceTimeSetting::where('name', 'default')->first();
 
-        if (! $attendanceTimeSetting) {
-            return 'Attendance time setting not found';
+        $userRole = $user->role_id;
+        $role_attendance_setting = RoleAttendanceTime::where('role_id', $userRole)->with('attendanceTimeSetting')
+            ->first();
+        if (! $role_attendance_setting) {
+            return 'Role attendance time setting not found';
         }
 
-        $checkOutStart = Carbon::parse($attendanceTimeSetting->check_out_start);
-        $checkOutEnd = Carbon::parse($attendanceTimeSetting->check_out_end);
+        $checkOutStart = Carbon::parse($role_attendance_setting->attendanceTimeSetting->check_out_start);
+        $checkOutEnd = Carbon::parse($role_attendance_setting->attendanceTimeSetting->check_out_end);
 
         if ($checkoutTime < $checkOutStart) {
             return 2; // late
