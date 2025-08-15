@@ -1,0 +1,15 @@
+services:
+    ponpes-absensi-be:
+        env_file: ".env"
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: ponpes-absensi-be
+        volumes:
+            - .:/app
+        command:
+            ["php", "artisan", "octane:start", "--host=0.0.0.0", "--port=8080"]
+        restart: unless-stopped
+        working_dir: /app
+        ports:
+            - 8003:8080
