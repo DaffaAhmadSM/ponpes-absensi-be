@@ -16,6 +16,7 @@ return new class extends Migration
                 ->constrained('roles')
                 ->onDelete('cascade')
                 ->after('id')
+                ->default(2)
                 ->comment('Foreign key to the roles table');
         });
     }
