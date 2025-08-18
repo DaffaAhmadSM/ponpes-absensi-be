@@ -16,6 +16,7 @@ class RoleSeeder extends Seeder
         Role::create([
             'id' => 1,
             'name' => 'admin',
+            'is_admin' => true,
             'description' => 'Administrator with full access',
         ]);
         

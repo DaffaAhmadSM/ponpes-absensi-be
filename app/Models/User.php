@@ -3,6 +3,9 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -37,7 +40,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property-read int|null $member_attendances_count
  * @mixin \Eloquent
  */
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
@@ -62,6 +65,9 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+    
+    
+    
 
     /**
      * Get the attributes that should be cast.
@@ -75,9 +81,15 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-
-    public function memberAttendances()
+    
+    public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasMany(MemberAttendance::class);
+        return $this->role->is_admin;
+    }
+
+    
+    public function role()
+    {
+        return $this->belongsTo(Role::class, 'role_id');
     }
 }
