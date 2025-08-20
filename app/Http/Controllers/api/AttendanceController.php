@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppSetting;
 use App\Models\AttendanceTimeSetting;
 use App\Models\InstanceLocation;
 use App\Models\MemberAttendance;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Validator;
 
 class AttendanceController extends Controller
 {
-    private int $max_distance_km = 2; // 1 km
+    // private int $max_distance_km = 2;
 
     public function index(Request $request)
     {
@@ -71,7 +72,7 @@ class AttendanceController extends Controller
         );
 
         $checkin_calc = 0;
-        if ($distance > $this->max_distance_km * 1000) {
+        if ($distance > $this->max_distance_km() * 1000) {
             $checkin_calc = 3; // out of range
         }
 
@@ -144,7 +145,7 @@ class AttendanceController extends Controller
 
         $checkout_calc = 0;
 
-        if ($distance > $this->max_distance_km * 1000) {
+        if ($distance > $this->max_distance_km() * 1000) {
             $checkout_calc = 3; // out of range
         }
         if ($checkout_calc != 3) {
@@ -205,6 +206,15 @@ class AttendanceController extends Controller
         }
 
         return 1;
+    }
+
+    private function max_distance_km(): int
+    {
+        $rad = AppSetting::where('key', 'radius')->firstOrFail();
+        if (! $rad) {
+            return 2; // default radius
+        }
+        return (int) $rad->value;
     }
 
     private function checkOutCalculation(Carbon $checkoutTime, User $user): string|int
