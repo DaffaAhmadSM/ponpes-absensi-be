@@ -21,19 +21,25 @@ class AttendanceController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'date' => 'date',
+            'month' => 'date_format:Ym',
+            'year' => 'date_format:Y',
         ]);
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()], 422);
         }
+        
+        $attendace = MemberAttendance::where('user_id', $request->user()->id);
 
-        $attendace = $request->user()->memberAttendances();
-
-        if ($request->has('date')) {
-            $attendace = $attendace->where('attendance_date', $request->date);
+        // $attendace = $request->user()->memberAttendances();
+        if ($request->has('month')) {
+            $attendace = $attendace->whereMonth('attendance_date', Carbon::createFromFormat('Ym', $request->month)->month);
+        }
+        if ($request->has('year')) {
+            $attendace = $attendace->whereYear('attendance_date', Carbon::createFromFormat('Y', $request->year)->year);
         }
 
         $attendace = $attendace->orderBy('attendance_date', 'desc')
-            ->get();
+            ->cursorPaginate(100);
 
         return response()->json($attendace);
 
