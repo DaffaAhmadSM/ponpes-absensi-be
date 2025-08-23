@@ -47,9 +47,12 @@ class AdminPanelProvider extends PanelProvider
                 // FilamentInfoWidget::class,
             ])
             ->navigationGroups([
+                NavigationGroup::make('User Setting')
+                    ->collapsible(),
                 NavigationGroup::make('Settings')
                     ->collapsible()
             ])
+            ->resourceCreatePageRedirect('index')
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
