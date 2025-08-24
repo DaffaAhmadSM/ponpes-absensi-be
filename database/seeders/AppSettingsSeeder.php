@@ -13,6 +13,13 @@ class AppSettingsSeeder extends Seeder
      */
     public function run(): void
     {
-        
+
+        AppSetting::create([
+            'key' => 'radius',
+            'value' => '10',
+            'type' => 'integer',
+            'description' => 'Radius in meters for attendance check-in/check-out',
+        ]);
+
     }
 }

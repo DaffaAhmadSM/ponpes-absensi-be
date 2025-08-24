@@ -9,8 +9,12 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $user_id
  * @property int $instance_location_id
  * @property string $attendance_date
- * @property string|null $check_in_time
+ * @property string $check_in_time
  * @property string|null $check_out_time
+ * @property string $check_in_latitude
+ * @property string $check_in_longitude
+ * @property string|null $check_out_latitude
+ * @property string|null $check_out_longitude
  * @property string $check_in_status
  * @property string|null $check_out_status
  * @property string|null $notes
@@ -22,8 +26,12 @@ use Illuminate\Database\Eloquent\Model;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MemberAttendance newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MemberAttendance query()
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MemberAttendance whereAttendanceDate($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|MemberAttendance whereCheckInLatitude($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|MemberAttendance whereCheckInLongitude($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MemberAttendance whereCheckInStatus($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MemberAttendance whereCheckInTime($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|MemberAttendance whereCheckOutLatitude($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|MemberAttendance whereCheckOutLongitude($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MemberAttendance whereCheckOutStatus($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MemberAttendance whereCheckOutTime($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|MemberAttendance whereCreatedAt($value)

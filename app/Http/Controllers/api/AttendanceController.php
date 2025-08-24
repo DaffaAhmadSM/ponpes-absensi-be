@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\api;
 
+use App\Enums\AttendanceStatus;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use App\Models\AttendanceTimeSetting;
@@ -27,7 +28,7 @@ class AttendanceController extends Controller
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()], 422);
         }
-        
+
         $attendace = MemberAttendance::where('user_id', $request->user()->id);
 
         // $attendace = $request->user()->memberAttendances();
@@ -77,31 +78,23 @@ class AttendanceController extends Controller
             $request->longitude
         );
 
-        $checkin_calc = 0;
+
+
+        $checkin_calc = AttendanceStatus::PRESENT;
         if ($distance > $this->max_distance_km() * 1000) {
-            $checkin_calc = 3; // out of range
+            $checkin_calc = AttendanceStatus::OUT_OF_RANGE; // out of range
         }
 
-        if ($checkin_calc != 3) {
+        if ($checkin_calc != AttendanceStatus::OUT_OF_RANGE) {
             $checkin_calc = $this->checkInCalculation(now(), $request->user());
         }
+
         $status = '';
-        switch ($checkin_calc) {
-            case 1:
-                // present
-                $status = 'present';
-                break;
-            case 2:
-                // late
-                $status = 'late';
-                break;
-            case 3:
-                // out of range
-                $status = 'out of range';
-                break;
-            default:
-                // error
-                return response()->json(['message' => $checkin_calc], 422);
+//        check if checkin_calc is string return error
+        if (is_string($checkin_calc)) {
+            return response()->json(['message' => $checkin_calc], 422);
+        }else{
+            $status = $checkin_calc->label();
         }
 
         MemberAttendance::create([
@@ -149,32 +142,22 @@ class AttendanceController extends Controller
             $request->longitude
         );
 
-        $checkout_calc = 0;
+        $checkout_calc = AttendanceStatus::PRESENT;
 
         if ($distance > $this->max_distance_km() * 1000) {
-            $checkout_calc = 3; // out of range
+            $checkout_calc = AttendanceStatus::OUT_OF_RANGE; // out of range
         }
-        if ($checkout_calc != 3) {
+        if ($checkout_calc != AttendanceStatus::OUT_OF_RANGE) {
             $checkout_calc = $this->checkOutCalculation(now(), $request->user());
         }
 
         $status = '';
-        switch ($checkout_calc) {
-            case 1:
-                // present
-                $status = 'present';
-                break;
-            case 2:
-                // to early
-                $status = 'to early';
-                break;
-            case 3:
-                // out of range
-                $status = 'out of range';
-                break;
-            default:
-                // error
-                return response()->json(['message' => $checkout_calc], 422);
+
+        // check if checkout_calc is string return error
+        if (is_string($checkout_calc)) {
+            return response()->json(['message' => $checkout_calc], 422);
+        }else{
+            $status = $checkout_calc->label();
         }
 
         if ($attendance->check_out_time != null) {
@@ -190,7 +173,7 @@ class AttendanceController extends Controller
         return response()->json(['message' => 'Check-out successful']);
     }
 
-    private function checkInCalculation(Carbon $checkinTime, User $user): string|int
+    private function checkInCalculation(Carbon $checkinTime, User $user): string|AttendanceStatus
     {
         // 1 present
         // 2 late
@@ -208,22 +191,25 @@ class AttendanceController extends Controller
             ->addMinutes($role_attendance_setting->attendanceTimeSetting->grace_period_minutes);
 
         if ($checkinTime > $checkInEnd) {
-            return 2; // late
+            return AttendanceStatus::LATE; // late
+        }
+        if ($checkinTime < $checkInStart) {
+            return AttendanceStatus::TO_EARLY; // to early
         }
 
-        return 1;
+        return AttendanceStatus::ON_TIME; // on time
     }
 
     private function max_distance_km(): int
     {
-        $rad = AppSetting::where('key', 'radius')->firstOrFail();
+        $rad = AppSetting::where('key', 'radius')->first();
         if (! $rad) {
             return 2; // default radius
         }
         return (int) $rad->value;
     }
 
-    private function checkOutCalculation(Carbon $checkoutTime, User $user): string|int
+    private function checkOutCalculation(Carbon $checkoutTime, User $user): string|AttendanceStatus
     {
         // 1 present
         // 2 to early
@@ -240,10 +226,14 @@ class AttendanceController extends Controller
         $checkOutEnd = Carbon::parse($role_attendance_setting->attendanceTimeSetting->check_out_end);
 
         if ($checkoutTime < $checkOutStart) {
-            return 2; // late
+            return AttendanceStatus::TO_EARLY;
         }
 
-        return 1;
+        if ($checkoutTime > $checkOutEnd) {
+            return AttendanceStatus::LATE;
+        }
+
+        return AttendanceStatus::ON_TIME;
     }
 
     private function haversineGreatCircleDistance(

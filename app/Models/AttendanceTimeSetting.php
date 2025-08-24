@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $check_out_start Start time for check-out
  * @property string $check_out_end End time for check-out
  * @property int $grace_period_minutes Grace period in minutes for late check-in
+ * @property int $default Is this the default attendance time setting?
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @method static \Illuminate\Database\Eloquent\Builder<static>|AttendanceTimeSetting newModelQuery()
@@ -22,6 +23,7 @@ use Illuminate\Database\Eloquent\Model;
  * @method static \Illuminate\Database\Eloquent\Builder<static>|AttendanceTimeSetting whereCheckOutEnd($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|AttendanceTimeSetting whereCheckOutStart($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|AttendanceTimeSetting whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|AttendanceTimeSetting whereDefault($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|AttendanceTimeSetting whereGracePeriodMinutes($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|AttendanceTimeSetting whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|AttendanceTimeSetting whereName($value)

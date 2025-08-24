@@ -49,8 +49,10 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups([
                 NavigationGroup::make('User Setting')
                     ->collapsible(),
+                NavigationGroup::make('Member Attendances')
+                    ->collapsible(),
                 NavigationGroup::make('Settings')
-                    ->collapsible()
+                    ->collapsible(),
             ])
             ->resourceCreatePageRedirect('index')
             ->middleware([
