@@ -15,5 +15,5 @@ docker run --rm -it --volume $(pwd):/app ponpes-absensi-be php artisan octane:in
 
 # up composer
 docker compose up -d
-docker compose exec api php artisan migrate
+docker compose exec ponpes-absensi-be php artisan filament:optimize
 docker compose ps

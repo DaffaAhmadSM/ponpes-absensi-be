@@ -21,6 +21,8 @@ RUN docker-php-ext-configure intl
 RUN sed -i -e "s/upload_max_filesize = .*/upload_max_filesize = 1G/g" \
     -e "s/post_max_size = .*/post_max_size = 1G/g" \
     -e "s/memory_limit = .*/memory_limit = 2G/g" \
+    # enable opcache
+    -e "s/;opcache.enable=.*/opcache.enable=1/g" \
     /usr/local/etc/php/php.ini-production \
     && cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
 
@@ -28,3 +30,6 @@ RUN sed -i -e "s/upload_max_filesize = .*/upload_max_filesize = 1G/g" \
 WORKDIR /app
 # Get latest Composer and install
 COPY --from=composer:2.8.10 /usr/bin/composer /usr/bin/composer
+
+# npm and Node.js
+
