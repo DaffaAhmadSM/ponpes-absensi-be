@@ -25,8 +25,14 @@ class MemberAttendanceResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'Member Attendance';
 
-//    title
+    //    title
     protected static string|null|UnitEnum $navigationGroup = 'Member Attendances';
+
+    public static function getNavigationLabel(): string
+    {
+        return 'All Attendances';
+    }
+
 
     public static function form(Schema $schema): Schema
     {

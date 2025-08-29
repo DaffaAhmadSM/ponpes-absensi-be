@@ -67,9 +67,9 @@ class User extends Authenticatable implements FilamentUser
         'password',
         'remember_token',
     ];
-    
-    
-    
+
+
+
 
     /**
      * Get the attributes that should be cast.
@@ -83,15 +83,21 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
         ];
     }
-    
+
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->role->is_admin;
     }
 
-    
+
     public function role()
     {
         return $this->belongsTo(Role::class, 'role_id');
+    }
+
+
+    public function memberAttendances()
+    {
+        return $this->hasMany(MemberAttendance::class, 'user_id');
     }
 }
