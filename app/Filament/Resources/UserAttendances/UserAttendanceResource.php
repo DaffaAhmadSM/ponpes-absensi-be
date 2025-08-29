@@ -2,20 +2,22 @@
 
 namespace App\Filament\Resources\UserAttendances;
 
-use App\Filament\Resources\UserAttendances\Pages\CreateUserAttendance;
-use App\Filament\Resources\UserAttendances\Pages\EditUserAttendance;
-use App\Filament\Resources\UserAttendances\Pages\ListUserAttendances;
-use App\Filament\Resources\UserAttendances\Pages\ViewUserAttendance;
-use App\Filament\Resources\UserAttendances\Schemas\UserAttendanceForm;
-use App\Filament\Resources\UserAttendances\Schemas\UserAttendanceInfolist;
-use App\Filament\Resources\UserAttendances\Tables\UserAttendancesTable;
-use App\Models\User;
-use BackedEnum;
-use Filament\Resources\Resource;
-use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Table;
 use UnitEnum;
+use BackedEnum;
+use App\Models\User;
+use Filament\Tables\Table;
+use Filament\Schemas\Schema;
+use App\Models\MemberAttendance;
+use Filament\Resources\Resource;
+use Filament\Support\Icons\Heroicon;
+use App\Filament\Resources\UserAttendances\Pages\EditUserAttendance;
+use App\Filament\Resources\UserAttendances\Pages\ViewUserAttendance;
+use App\Filament\Resources\UserAttendances\Pages\ListUserAttendances;
+use App\Filament\Resources\UserAttendances\Pages\CreateUserAttendance;
+use App\Filament\Resources\UserAttendances\Schemas\UserAttendanceForm;
+use App\Filament\Resources\UserAttendances\Tables\UserAttendancesTable;
+use App\Filament\Resources\UserAttendances\Schemas\UserAttendanceInfolist;
+use App\Filament\Resources\UserAttendances\RelationManagers\MemberAttendancesRelationManager;
 
 class UserAttendanceResource extends Resource
 {
@@ -51,7 +53,7 @@ class UserAttendanceResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            MemberAttendancesRelationManager::class,
         ];
     }
 
