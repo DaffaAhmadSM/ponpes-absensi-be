@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -24,6 +23,7 @@ return new class extends Migration
             $table->decimal('check_out_longitude', 11, 8)->nullable();
             $table->string('check_in_status')->default('present'); // 'present', 'absent', 'late', etc.
             $table->string('check_out_status')->nullable(); // 'to early', 'on time', etc.
+            $table->string('image');
             $table->text('notes')->nullable();
             $table->timestamps();
         });

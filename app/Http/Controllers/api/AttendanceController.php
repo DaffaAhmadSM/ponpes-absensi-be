@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers\api;
 
-use App\Enums\AttendanceStatus;
-use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Models\AppSetting;
-use App\Models\AttendanceTimeSetting;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use App\Enums\AttendanceStatus;
 use App\Models\InstanceLocation;
 use App\Models\MemberAttendance;
 use App\Models\RoleAttendanceTime;
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
+use App\Http\Controllers\Controller;
+use App\Models\AttendanceTimeSetting;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class AttendanceController extends Controller
@@ -52,6 +53,7 @@ class AttendanceController extends Controller
             'date' => 'required|date',
             'longitude' => 'required|numeric',
             'latitude' => 'required|numeric',
+            'image' => 'required|image|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -62,12 +64,22 @@ class AttendanceController extends Controller
             ->where('attendance_date', Carbon::parse($request->date))
             ->first();
 
+
         if ($check_attendance) {
             return response()->json(['message' => 'User has already checked in on this date'], 422);
         }
 
+
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imageName = time() . '.' . $image->getClientOriginalExtension();
+            Storage::disk('public')->put("attendance_images/" . $imageName, file_get_contents($image));
+
+            $request->merge(['image' => 'attendance_images/' . $imageName]);
+        }
+
         $default_location = InstanceLocation::where('default', true)->first();
-        if (! $default_location) {
+        if (!$default_location) {
             return response()->json(['message' => 'default location not found'], 500);
         }
         // harvesine formula to calculate distance
@@ -90,10 +102,10 @@ class AttendanceController extends Controller
         }
 
         $status = '';
-//        check if checkin_calc is string return error
+        //        check if checkin_calc is string return error
         if (is_string($checkin_calc)) {
             return response()->json(['message' => $checkin_calc], 422);
-        }else{
+        } else {
             $status = $checkin_calc->label();
         }
 
@@ -106,6 +118,7 @@ class AttendanceController extends Controller
             'check_in_latitude' => $request->latitude,
             'check_in_longitude' => $request->longitude,
             'notes' => $request->notes ?? null,
+            'image' => $request->image,
         ]);
 
         return response()->json(['message' => 'Check-in successful']);
@@ -117,12 +130,13 @@ class AttendanceController extends Controller
             'date' => 'required|date',
             'longitude' => 'required|numeric',
             'latitude' => 'required|numeric',
+            'image' => 'required|image|max:2048',
         ]);
 
         $attendance = MemberAttendance::where('user_id', $request->user()->id)
             ->where('attendance_date', Carbon::parse($request->date))
             ->first();
-        if (! $attendance) {
+        if (!$attendance) {
             return response()->json(['message' => 'User has not checked in yet on this date'], 404);
         }
 
@@ -131,8 +145,16 @@ class AttendanceController extends Controller
         }
 
         $default_location = InstanceLocation::where('default', true)->first();
-        if (! $default_location) {
+        if (!$default_location) {
             return response()->json(['message' => 'default location not found'], 500);
+        }
+
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imageName = time() . '.' . $image->getClientOriginalExtension();
+            Storage::disk('public')->put("attendance_images/" . $imageName, file_get_contents($image));
+
+            $request->merge(['image' => 'attendance_images/' . $imageName]);
         }
         // harvesine formula to calculate distance
         $distance = $this->haversineGreatCircleDistance(
@@ -156,7 +178,7 @@ class AttendanceController extends Controller
         // check if checkout_calc is string return error
         if (is_string($checkout_calc)) {
             return response()->json(['message' => $checkout_calc], 422);
-        }else{
+        } else {
             $status = $checkout_calc->label();
         }
 
@@ -182,7 +204,7 @@ class AttendanceController extends Controller
 
         $role_attendance_setting = RoleAttendanceTime::where('role_id', $userRole)->with('attendanceTimeSetting')
             ->first();
-        if (! $role_attendance_setting) {
+        if (!$role_attendance_setting) {
             return 'Role attendance time setting not found please contact admin';
         }
 
@@ -203,7 +225,7 @@ class AttendanceController extends Controller
     private function max_distance_km(): int
     {
         $rad = AppSetting::where('key', 'radius')->first();
-        if (! $rad) {
+        if (!$rad) {
             return 2; // default radius
         }
         return (int) $rad->value;
@@ -218,7 +240,7 @@ class AttendanceController extends Controller
         $userRole = $user->role_id;
         $role_attendance_setting = RoleAttendanceTime::where('role_id', $userRole)->with('attendanceTimeSetting')
             ->first();
-        if (! $role_attendance_setting) {
+        if (!$role_attendance_setting) {
             return 'Role attendance time setting not found';
         }
 
@@ -237,8 +259,12 @@ class AttendanceController extends Controller
     }
 
     private function haversineGreatCircleDistance(
-        $latitudeFrom, $longitudeFrom, $latitudeTo, $longitudeTo, $earthRadius = 6371000)
-    {
+        $latitudeFrom,
+        $longitudeFrom,
+        $latitudeTo,
+        $longitudeTo,
+        $earthRadius = 6371000
+    ) {
         // convert from degrees to radians
         $latFrom = deg2rad($latitudeFrom);
         $lonFrom = deg2rad($longitudeFrom);
@@ -249,7 +275,7 @@ class AttendanceController extends Controller
         $lonDelta = $lonTo - $lonFrom;
 
         $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
-          cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
+            cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
 
         return $angle * $earthRadius;
     }
