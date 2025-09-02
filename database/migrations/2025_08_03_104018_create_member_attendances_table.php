@@ -23,7 +23,8 @@ return new class extends Migration {
             $table->decimal('check_out_longitude', 11, 8)->nullable();
             $table->string('check_in_status')->default('present'); // 'present', 'absent', 'late', etc.
             $table->string('check_out_status')->nullable(); // 'to early', 'on time', etc.
-            $table->string('image');
+            $table->string('image_in')->nullable();
+            $table->string('image_out')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
         });

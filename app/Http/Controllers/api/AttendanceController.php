@@ -14,6 +14,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceTimeSetting;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class AttendanceController extends Controller
 {
@@ -22,7 +23,7 @@ class AttendanceController extends Controller
     public function index(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'date' => 'date',
+            'date' => 'date_format:Ymd',
             'month' => 'date_format:Ym',
             'year' => 'date_format:Y',
         ]);
@@ -38,6 +39,10 @@ class AttendanceController extends Controller
         }
         if ($request->has('year')) {
             $attendace = $attendace->whereYear('attendance_date', Carbon::createFromFormat('Y', $request->year)->year);
+        }
+
+        if ($request->has('date')) {
+            $attendace = $attendace->whereDate('attendance_date', Carbon::createFromFormat('Ymd', $request->date)->toDateString());
         }
 
         $attendace = $attendace->orderBy('attendance_date', 'desc')
@@ -70,12 +75,14 @@ class AttendanceController extends Controller
         }
 
 
+        $imgStore = '';
+
         if ($request->hasFile('image')) {
             $image = $request->file('image');
-            $imageName = time() . '.' . $image->getClientOriginalExtension();
-            Storage::disk('public')->put("attendance_images/" . $imageName, file_get_contents($image));
-
-            $request->merge(['image' => 'attendance_images/' . $imageName]);
+            $strRand = Str::random(10);
+            $imageName = $strRand . time() . '.' . $image->getClientOriginalExtension();
+            $store = Storage::disk('public')->putFileAs("attendance_images", $image, $imageName);
+            $imgStore = $store;
         }
 
         $default_location = InstanceLocation::where('default', true)->first();
@@ -118,7 +125,7 @@ class AttendanceController extends Controller
             'check_in_latitude' => $request->latitude,
             'check_in_longitude' => $request->longitude,
             'notes' => $request->notes ?? null,
-            'image' => $request->image,
+            'image_in' => $imgStore,
         ]);
 
         return response()->json(['message' => 'Check-in successful']);
@@ -149,12 +156,14 @@ class AttendanceController extends Controller
             return response()->json(['message' => 'default location not found'], 500);
         }
 
+        $imgStore = '';
+
         if ($request->hasFile('image')) {
             $image = $request->file('image');
-            $imageName = time() . '.' . $image->getClientOriginalExtension();
-            Storage::disk('public')->put("attendance_images/" . $imageName, file_get_contents($image));
-
-            $request->merge(['image' => 'attendance_images/' . $imageName]);
+            $strRand = Str::random(10);
+            $imageName = $strRand . time() . '.' . $image->getClientOriginalExtension();
+            $store = Storage::disk('public')->putFileAs("attendance_images", $image, $imageName);
+            $imgStore = $store;
         }
         // harvesine formula to calculate distance
         $distance = $this->haversineGreatCircleDistance(
@@ -190,6 +199,7 @@ class AttendanceController extends Controller
         $attendance->check_out_status = $status;
         $attendance->check_out_latitude = $request->latitude;
         $attendance->check_out_longitude = $request->longitude;
+        $attendance->image_out = $imgStore;
         $attendance->save();
 
         return response()->json(['message' => 'Check-out successful']);
